@@ -18,6 +18,7 @@
 </template>
 
 <script>
+// todo - фильтры должны учитывать тип данные, м.б range, cheeckbox
 import OzTable from './oz-table';
 import OzTableColumn from './oz-table-column';
 

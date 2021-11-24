@@ -12,7 +12,9 @@ export default {
   },
   data() {
     return {
+      // property for sorting
       sortProp: '',
+      // asc desc
       sortDirection: '',
       filterProp: '',
       filterText: ''
@@ -23,6 +25,7 @@ export default {
       let res;
 
       if (!this.sortProp) {
+        // todo  - возвращать не просто ряды, а отфильтрованные
         res =  this.rows;
       }
 

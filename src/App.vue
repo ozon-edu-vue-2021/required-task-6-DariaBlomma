@@ -2,7 +2,8 @@
   <div id="app">
     <!-- <VirtalScrollWrapper /> -->
     <!-- <Base /> -->
-    <Paging />
+    <!-- <Paging /> -->
+    <Sort />
   </div>
 </template>
 
@@ -10,13 +11,16 @@
 
 // import VirtalScrollWrapper from '@/components/virtual-scroll';
 // import Base from '@/components/base';
-import Paging from '@/components/with-paging';
+// import Paging from '@/components/with-paging';
+import Sort from '@/components/with-sort';
+
 export default {
   name: 'App',
   components: {
     // VirtalScrollWrapper
     // Base,
-    Paging,
+    // Paging,
+    Sort,
   }
 };
 </script>
