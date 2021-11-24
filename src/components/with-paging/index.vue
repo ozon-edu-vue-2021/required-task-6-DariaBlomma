@@ -1,9 +1,10 @@
 <template>
+<!-- todo -  при статической пагинации неверно обрабатывается клик по пагинации - в любом случае добавится следующая страница -->
   <oz-table
     :rows="rows"
     :total-pages="100"
     :current-page="currentPage"
-    :static-paging="false"
+    :static-paging="true"
 
     @getPage="infGetPage"
   >

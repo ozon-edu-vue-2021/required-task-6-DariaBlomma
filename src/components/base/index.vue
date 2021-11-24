@@ -1,8 +1,10 @@
 <template>
   <oz-table :rows="rows">
+    <!-- компонент колонки нужен для передачи нужных данных в компонент таблицы -->
     <oz-table-column prop="id" title="ID" />
     <oz-table-column prop="postId" title="Post ID" />
 
+<!-- todo - можно делать пустой компонент и передавать слоты, не указывая их внутри компонента? -->
     <oz-table-column prop="email">
       <template #title>
         <b>Email</b>
