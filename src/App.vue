@@ -1,26 +1,20 @@
 <template>
   <div id="app">
-    <!-- <VirtalScrollWrapper /> -->
-    <!-- <Base /> -->
-    <!-- <Paging /> -->
-    <Sort />
+    <Common />
+    <!-- <Sort /> -->
   </div>
 </template>
 
 <script>
 
-// import VirtalScrollWrapper from '@/components/virtual-scroll';
-// import Base from '@/components/base';
-// import Paging from '@/components/with-paging';
-import Sort from '@/components/with-sort';
+import Common from '@/components/common';
+// import Sort from '@/components/with-sort';
 
 export default {
   name: 'App',
   components: {
-    // VirtalScrollWrapper
-    // Base,
-    // Paging,
-    Sort,
+    Common,
+    // Sort,
   }
 };
 </script>

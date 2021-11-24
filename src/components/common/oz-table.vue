@@ -1,6 +1,8 @@
 <script lang="jsx">
 import { orderBy } from 'lodash/collection';
 import FilterDropdown from './filter-dropdown';
+import OzTablePaginator from './oz-table-paginator';
+import DotsLoaderIcon from './dost-loader.svg';
 
 export default {
   name: 'oz-table',
@@ -8,7 +10,23 @@ export default {
     rows: {
       type: Array,
       default: () => []
-    }
+    },
+    allPages: {
+      type: Array,
+      default: () => []
+    },
+    totalPages: {
+      type: Number,
+      default: 0
+    },
+    currentPage: {
+      type: Number,
+      default: 0
+    },
+    staticPaging: {
+      type: Boolean,
+      default: true
+    },
   },
   data() {
     return {
@@ -27,12 +45,14 @@ export default {
       if (!this.sortProp) {
         // todo  - возвращать не просто ряды, а отфильтрованные
         res =  this.rows;
+        // res =  this.allPages;
       }
-
+// для правильной фильтрации должна быть не текущая страница, а все 100
       res = orderBy(this.rows, [this.sortProp], [this.sortDirection]);
-      console.log(' res: ',  res);
+      console.log('res: ', res);
 
       if(this.filterText) {
+        // если подставить здесь allPages, то при фильтрации потеряется пагинация
         res = res.filter(row => row[this.filterProp].search(this.filterText) > -1)
         console.log('res: ', res);
       }
@@ -113,16 +133,43 @@ export default {
         );
     }
   },
+  renderInfPager() {
+    const directives = [
+      {
+        name: 'detect-viewport',
+        value: {
+          callback: this.$listeners.getPage
+        }
+      }
+    ];
+
+    const style = {
+      background: `url("${DotsLoaderIcon}") no-repeat center`
+    };
+
+    return (
+      <div {...{ class: this.$style.infPager, style, directives }} />
+    );
+  },
   render(h) {
+    const { $style, totalPages, currentPage, staticPaging, $listeners } = this;
+    const { getPage } = $listeners;
     const columnsOptions = this.getColumnOptions();
     const columnsHead = this.renderHead(h, columnsOptions);
     const rows = this.renderRows(h, columnsOptions);
 
     return (
-      <table class={this.$style.table}>
-        <thead>{...columnsHead}</thead>
-        <tbody>{...rows}</tbody>
-      </table>
+      <div>
+        <table class={$style.table}>
+          <thead>{...columnsHead}</thead>
+          <tbody>{...rows}</tbody>
+        </table>
+
+        {staticPaging
+          ? <OzTablePaginator totalPages={totalPages} currentPage={currentPage} on={{ getPage: getPage }} />
+          : this.renderInfPager()
+        }
+      </div>
     );
   }
 };
@@ -158,5 +205,10 @@ export default {
 
   .sortIcon:hover {
     cursor: pointer;
+  }
+
+  .infPager {
+    width: 100%;
+    height: 32px;
   }
 </style>
