@@ -2,12 +2,13 @@
   <oz-table
     :rows="rows"
     :all-pages="allPages"
-    :total-pages="100"
+    :total-pages="getTotalPages"
     :current-page="currentPage"
     :static-paging="true"
 
     @getPage="getPage"
     @addFilter="addFilter"
+    @removeFilter="removeFilter"
   >
     <oz-table-column prop="id" title="ID" />
     <oz-table-column prop="postId" title="Post ID" />
@@ -38,12 +39,11 @@ export default {
     OzTable
   },
   async created() {
-      const res = await fetch(`https://jsonplaceholder.typicode.com/comments`);
-      this.allPages = await res.json();
-      this.preparePages(this.allPages);
+    const res = await fetch(`https://jsonplaceholder.typicode.com/comments`);
+    this.allPages = await res.json();
+    this.preparePages(this.allPages);
     // нужно для получения первой страницы при загрузке
     this.blockingPromise = this.getPage(1);
-    // this.getAllPages();
   },
   data() {
     return {
@@ -53,11 +53,19 @@ export default {
       currentPage: 1
     };
   },
+  computed: {
+    getTotalPages() {
+      return this.list.length;
+    }
+  },
   methods: {
     addFilter(value) {
-      console.log('value: ', value);
       const res = this.allPages.filter(row => row[value.filterProp].search(value.filterText) > -1)
       this.preparePages(res);
+      this.getPage(this.currentPage);
+    },
+    removeFilter() {
+      this.preparePages(this.allPages);
       this.getPage(this.currentPage);
     },
     // создает разбитый на страницы массив
@@ -73,14 +81,8 @@ export default {
       console.log('in prepare pages', this.list);
     },
     async getPage(number) {
-      // console.log('number: ', number);
-      // const res = await fetch(`https://jsonplaceholder.typicode.com/comments`);
-      // this.allPages = await res.json();
-      // this.preparePages(this.allPages);
       console.log('in get page this.list: ', this.list);
       this.rows = this.list[number - 1];
-      // console.log('this.list.length: ', this.list.length);
-      // console.log('this.rows: ', this.rows);
       this.currentPage = number;
     },
     async infGetPage() {

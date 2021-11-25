@@ -40,13 +40,13 @@ export default {
       sortDirection: '',
       filterProp: '',
       filterText: '',
-      filterParams: {
-        sortProp: '',
-        // asc desc
-        sortDirection: '',
-        filterProp: '',
-        filterText: '',
-      }
+      // filterParams: {
+      //   sortProp: '',
+      //   // asc desc
+      //   sortDirection: '',
+      //   filterProp: '',
+      //   filterText: '',
+      // }
     };
   },
   computed: {
@@ -59,23 +59,9 @@ export default {
         res =  this.rows;
         // res =  this.allPages;
       }
-// для правильной фильтрации должна быть не текущая страница, а все 100
+      // для правильной фильтрации должна быть не текущая страница, а все 100
       res = orderBy(this.rows, [this.sortProp], [this.sortDirection]);
       // console.log('res: ', res);
-
-      if(this.filterText) {
-        // this.filterParams.filterProp = this.filterProp;
-        // если подставить здесь allPages, то при фильтрации потеряется пагинация
-        // res = res.filter(row => row[this.filterProp].search(this.filterText) > -1)
-        console.log('this.allPages: ', this.allPages);
-        res = this.allPages.filter(row => row[this.filterProp].search(this.filterText) > -1)
-        // console.log('res: ', res);
-        // this.$emit('addFilter', res);
-        this.$emit('addFilter', {
-          filterProp: this.filterProp,
-          filterText: this.filterText,
-        });
-      }
 
       return res;
     }
@@ -86,19 +72,15 @@ export default {
       this.sortDirection = (this.sortDirection === 'desc' || !this.sortDirection) ? 'asc' : 'desc';
     },
     openFilterTooltip(prop = '') {
+      if (prop === '') {
+        this.$emit('removeFilter');
+      }
       this.filterProp = prop;
       this.filterText = '';
     },
     setFilterText(e) {
       this.filterText = e.target.value;
-    if(this.filterText) {
-        // this.filterParams.filterProp = this.filterProp;
-        // если подставить здесь allPages, то при фильтрации потеряется пагинация
-        // res = res.filter(row => row[this.filterProp].search(this.filterText) > -1)
-        // console.log('this.allPages: ', this.allPages);
-        // res = this.allPages.filter(row => row[this.filterProp].search(this.filterText) > -1)
-        // console.log('res: ', res);
-        // this.$emit('addFilter', res);
+      if (this.filterText) {
         this.$emit('addFilter', {
           filterProp: this.filterProp,
           filterText: this.filterText,
@@ -142,7 +124,6 @@ export default {
       });
     },
     renderRows(h, columnsOptions) {
-      // return this.sortedRows.map((row, index) => {
       return this.rows.map((row, index) => {
         return <tr key={row.id || index}>{...this.renderColumns(h, row, columnsOptions)}</tr>;
       });
