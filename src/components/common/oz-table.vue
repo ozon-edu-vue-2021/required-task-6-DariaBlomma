@@ -40,13 +40,12 @@ export default {
       sortDirection: '',
       filterProp: '',
       filterText: '',
-      // filterParams: {
-      //   sortProp: '',
-      //   // asc desc
-      //   sortDirection: '',
-      //   filterProp: '',
-      //   filterText: '',
-      // }
+      filter: {
+        sortProp: '',
+        sortDirection: '',
+        filterProp: '',
+        filterText: '',
+      }
     };
   },
   computed: {
@@ -68,34 +67,33 @@ export default {
   },
   methods: {
     toggleSort(prop) {
-      this.sortProp = prop;
-      this.sortDirection = (this.sortDirection === 'desc' || !this.sortDirection) ? 'asc' : 'desc';
+      this.filter.sortProp = prop;
+      this.filter.sortDirection = (this.filter.sortDirection === 'desc' || !this.filter.sortDirection) ? 'asc' : 'desc';
+      this.$emit('addSort', this.filter);
     },
     openFilterTooltip(prop = '') {
+      console.log('in open filterTooltip')
       if (prop === '') {
-        this.$emit('removeFilter');
+        this.$emit('removeFilter', this.filter);
       }
-      this.filterProp = prop;
-      this.filterText = '';
+      this.filter.filterProp = prop;
+      this.filter.filterText = '';
     },
     setFilterText(e) {
-      this.filterText = e.target.value;
-      if (this.filterText) {
-        this.$emit('addFilter', {
-          filterProp: this.filterProp,
-          filterText: this.filterText,
-        });
+      this.filter.filterText = e.target.value;
+      if (this.filter.filterText) {
+        this.$emit('addFilter', this.filter);
       }
     },
     renderHead(h, columnsOptions) {
-      const { $style, sortProp, sortDirection, filterProp, filterText } = this;
+      const { $style, filter } = this;
 
       return columnsOptions.map((column) => {
         const renderedTitle = column.scopedSlots.title ? column.scopedSlots.title() : column.title;
         let sortIcon = 'sort';
 
-        if (sortProp === column.prop) {
-          sortIcon = sortDirection === 'asc' ? 'sort-amount-down' : 'sort-amount-up';
+        if (filter.sortProp === column.prop) {
+          sortIcon = filter.sortDirection === 'asc' ? 'sort-amount-down' : 'sort-amount-up';
         }
 
         return (
@@ -109,8 +107,8 @@ export default {
               />
               <FilterDropdown
                 columnProp={column.prop}
-                shown={column.prop === filterProp}
-                filterText={filterText}
+                shown={column.prop === filter.filterProp}
+                filterText={filter.filterText}
 
                 on={{
                   openFilterTooltip: () => this.openFilterTooltip(column.prop),

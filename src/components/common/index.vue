@@ -7,8 +7,10 @@
     :static-paging="true"
 
     @getPage="getPage"
+
     @addFilter="addFilter"
     @removeFilter="removeFilter"
+    @addSort="addSort"
   >
     <oz-table-column prop="id" title="ID" />
     <oz-table-column prop="postId" title="Post ID" />
@@ -28,6 +30,7 @@
 </template>
 
 <script>
+import { orderBy } from 'lodash/collection';
 // todo - фильтры должны учитывать тип данные, м.б range, cheeckbox
 import OzTable from './oz-table';
 import OzTableColumn from './oz-table-column';
@@ -50,7 +53,9 @@ export default {
       rows: [],
       allPages: [],
       list: [],
-      currentPage: 1
+      currentPage: 1,
+      isSorted: false,
+      isFilered: false,
     };
   },
   computed: {
@@ -60,12 +65,29 @@ export default {
   },
   methods: {
     addFilter(value) {
-      const res = this.allPages.filter(row => row[value.filterProp].search(value.filterText) > -1)
+      // нужно объединить фильтрацию и сортировку
+      this.isFilered = true;
+      let res = this.allPages;
+      if (this.isSorted) {
+        res = orderBy(this.allPages, [value.sortProp], [value.sortDirection]);
+      }
+      res = res.filter(row => row[value.filterProp].search(value.filterText) > -1);
       this.preparePages(res);
       this.getPage(this.currentPage);
     },
     removeFilter() {
+      this.isFilered = false;
       this.preparePages(this.allPages);
+      this.getPage(this.currentPage);
+    },
+    addSort(value) {
+      this.isSorted = true;
+      let res = this.allPages;
+      if (this.isFilered) {
+        res = res.filter(row => row[value.filterProp].search(value.filterText) > -1)
+      }
+      res = orderBy(res, [value.sortProp], [value.sortDirection]);
+      this.preparePages(res);
       this.getPage(this.currentPage);
     },
     // создает разбитый на страницы массив
