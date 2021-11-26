@@ -8,7 +8,7 @@
     :current-page="currentPage"
     :static-paging="staticPaging"
 
-    @getPage="infGetPage"
+    @getPage="getPage"
 
     @addFilter="addFilter"
     @removeFilter="removeFilter"
@@ -37,7 +37,6 @@ import { orderBy } from 'lodash/collection';
 import OzTable from './oz-table';
 import OzTableColumn from './oz-table-column';
 
-// todo - передавать в сортировку и фильтр либо все страницы, либо только ряды в зависимости от значения пагинации
 export default {
   name: 'Common',
   components: {
@@ -59,7 +58,7 @@ export default {
     // для сброса фильтров или сортировки к исходному состоянию должен быть неизменяемый массив - fetchedRows, allPages 
   data() {
     return {
-      staticPaging: false,
+      staticPaging: true,
       rows: [],
       fetchedRows: [],
       allPages: [],
@@ -83,6 +82,7 @@ export default {
         const res = await fetch(`https://jsonplaceholder.typicode.com/comments`);
         this.allPages = await res.json();
         this.preparePages(this.allPages);
+        this.getPage(1);
       }
     },
     async fetchFirstPage() {
