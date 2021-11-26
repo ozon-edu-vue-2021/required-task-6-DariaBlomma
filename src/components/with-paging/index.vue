@@ -1,5 +1,4 @@
 <template>
-<!-- todo -  при статической пагинации неверно обрабатывается клик по пагинации - в любом случае добавится следующая страница -->
   <!--  @getPage="infGetPage" для бесконечной пагиинации -->
   <!-- @getPage="getPage" для тстатической пагинации -->
   <oz-table
@@ -54,6 +53,7 @@ export default {
     },
     async infGetPage() {
       this.blockingPromise && await this.blockingPromise;
+      console.log('this.blockingPromise && await this.blockingPromise: ', this.blockingPromise && await this.blockingPromise);
       const res = await fetch(`https://jsonplaceholder.typicode.com/comments?postId=${this.currentPage + 1}`);
       const newRows = await res.json();
       this.rows = [...this.rows, ...newRows];

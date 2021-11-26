@@ -121,25 +121,25 @@ export default {
             }
           )
         );
-    }
-  },
-  renderInfPager() {
-    const directives = [
-      {
-        name: 'detect-viewport',
-        value: {
-          callback: this.$listeners.getPage
+    },
+    renderInfPager() {
+      const directives = [
+        {
+          name: 'detect-viewport',
+          value: {
+            callback: this.$listeners.getPage
+          }
         }
-      }
-    ];
+      ];
 
-    const style = {
-      background: `url("${DotsLoaderIcon}") no-repeat center`
-    };
+      const style = {
+        background: `url("${DotsLoaderIcon}") no-repeat center`
+      };
 
-    return (
-      <div {...{ class: this.$style.infPager, style, directives }} />
-    );
+      return (
+        <div {...{ class: this.$style.infPager, style, directives }} />
+      );
+    },
   },
   render(h) {
     const { $style, totalPages, currentPage, staticPaging, $listeners } = this;
@@ -147,15 +147,15 @@ export default {
     const columnsOptions = this.getColumnOptions();
     const columnsHead = this.renderHead(h, columnsOptions);
     const rows = this.renderRows(h, columnsOptions);
-
+    // console.log(1, this.renderInfPager);
     return (
       <div>
         <table class={$style.table}>
           <thead>{...columnsHead}</thead>
           <tbody>{...rows}</tbody>
         </table>
-
         {staticPaging
+        
           ? <OzTablePaginator totalPages={totalPages} currentPage={currentPage} on={{ getPage: getPage }} />
           : this.renderInfPager()
         }

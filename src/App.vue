@@ -1,21 +1,26 @@
 <template>
   <div id="app">
-    <Common />
-    <!-- <Sort /> -->
+    <Common v-if="common"/>
+    <Paging v-else/>
   </div>
 </template>
 
 <script>
 
 import Common from '@/components/common';
-// import Sort from '@/components/with-sort';
+import Paging from '@/components/with-paging';
 
 export default {
   name: 'App',
   components: {
     Common,
-    // Sort,
-  }
+    Paging,
+  },
+  data() {
+    return {
+      common: true,
+    }
+  },
 };
 </script>
 

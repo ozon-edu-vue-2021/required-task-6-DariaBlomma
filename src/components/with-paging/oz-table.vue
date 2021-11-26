@@ -78,12 +78,12 @@ export default {
     }
   },
   render(h) {
+    console.log('in render');
     const { $style, totalPages, currentPage, staticPaging, $listeners } = this;
     const { getPage } = $listeners;
     const columnsOptions = this.getColumnOptions();
     const columnsHead = this.renderHead(h, columnsOptions);
     const rows = this.renderRows(h, columnsOptions);
-
     return (
       <div>
         <table class={$style.table}>

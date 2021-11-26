@@ -1,12 +1,14 @@
 <template>
+  <!--  @getPage="infGetPage" для бесконечной пагиинации -->
+  <!-- @getPage="getPage" для тстатической пагинации -->
   <oz-table
     :rows="rows"
     :all-pages="allPages"
     :total-pages="getTotalPages"
     :current-page="currentPage"
-    :static-paging="true"
+    :static-paging="staticPaging"
 
-    @getPage="getPage"
+    @getPage="infGetPage"
 
     @addFilter="addFilter"
     @removeFilter="removeFilter"
@@ -35,6 +37,7 @@ import { orderBy } from 'lodash/collection';
 import OzTable from './oz-table';
 import OzTableColumn from './oz-table-column';
 
+// todo - передавать в сортировку и фильтр либо все страницы, либо только ряды в зависимости от значения пагинации
 export default {
   name: 'Common',
   components: {
@@ -42,15 +45,23 @@ export default {
     OzTable
   },
   async created() {
-    const res = await fetch(`https://jsonplaceholder.typicode.com/comments`);
-    this.allPages = await res.json();
-    this.preparePages(this.allPages);
-    // нужно для получения первой страницы при загрузке
-    this.blockingPromise = this.getPage(1);
-  },
+    if (this.staticPaging) {
+      this.fetchAllPages();
+    } else {
+      // нужно для получения первой страницы при загрузке
+      this.blockingPromise = this.fetchFirstPage();
+    }
+  },   
+    // const res = await fetch(`https://jsonplaceholder.typicode.com/comments`);
+    // this.allPages = await res.json();
+    // this.preparePages(this.allPages);
+
+    // для сброса фильтров или сортировки к исходному состоянию должен быть неизменяемый массив - fetchedRows, allPages 
   data() {
     return {
+      staticPaging: false,
       rows: [],
+      fetchedRows: [],
       allPages: [],
       list: [],
       currentPage: 1,
@@ -67,46 +78,85 @@ export default {
     },
   },
   methods: {
+    async fetchAllPages() {
+      if (this.staticPaging) {
+        const res = await fetch(`https://jsonplaceholder.typicode.com/comments`);
+        this.allPages = await res.json();
+        this.preparePages(this.allPages);
+      }
+    },
+    async fetchFirstPage() {
+      if (!this.staticPaging) {
+        const res = await fetch(`https://jsonplaceholder.typicode.com/comments?postId=1`);
+        this.fetchedRows = await res.json();
+        this.rows = this.fetchedRows;
+      }
+    },
     sortList() {
       let array = [];
       if (this.isFiltered) {
         array = this.filteredList;
       } else {
-        array = this.allPages;
+          if (!this.staticPaging) {
+            array = this.fetchedRows;
+          } else {
+            array = this.allPages;
+          }
       }
       
       this.sortedList =  orderBy(array, [this.sortFilterInfo.sortProp], [this.sortFilterInfo.sortDirection]);
+
+      if (!this.staticPaging) {
+        this.rows = this.sortedList;
+      }
     },
     filterList() {
       let array = [];
       if (this.isSorted) {
         array = this.sortedList;
       } else {
-        array = this.allPages;
+        if (!this.staticPaging) {
+          array = this.fetchedRows;
+        } else {
+          array = this.allPages;
+        }
       }
       
       this.filteredList =  array.filter(row => row[this.sortFilterInfo.filterProp].search(this.sortFilterInfo.filterText) > -1);
+      // todo - так работает при бесконечном скролле, но лагает.
+      if (!this.staticPaging) {
+        this.rows = this.filteredList;
+      }
     },
     addFilter(value) {
       this.isFiltered = true;
       this.sortFilterInfo = value;
       this.filterList();
-      this.preparePages(this.filteredList);
-      this.getPage(this.currentPage);
+      
+      if (this.staticPaging) {
+        this.preparePages(this.filteredList);
+        this.getPage(this.currentPage);
+      }
     },
     removeFilter(value) {
       this.isFiltered = false;
       this.sortFilterInfo = value;
       this.sortList();
-      this.preparePages(this.sortedList);
-      this.getPage(this.currentPage);
+
+      if (this.staticPaging) {
+        this.preparePages(this.sortedList);
+        this.getPage(this.currentPage);
+      }
     },
     addSort(value) {
       this.isSorted = true;
       this.sortFilterInfo = value;
       this.sortList();
-      this.preparePages(this.sortedList);
-      this.getPage(this.currentPage);
+
+      if (this.staticPaging) {
+        this.preparePages(this.sortedList);
+        this.getPage(this.currentPage);
+      }
     },
     // создает разбитый на страницы массив
     preparePages(array) {
@@ -118,10 +168,8 @@ export default {
         }
         this.list = list;
       }
-      // console.log('in prepare pages', this.list);
     },
     async getPage(number) {
-      // console.log('in get page this.list: ', this.list);
       this.rows = this.list[number - 1];
       this.currentPage = number;
     },
@@ -129,8 +177,16 @@ export default {
       this.blockingPromise && await this.blockingPromise;
       const res = await fetch(`https://jsonplaceholder.typicode.com/comments?postId=${this.currentPage + 1}`);
       const newRows = await res.json();
-      this.rows = [...this.rows, ...newRows];
+      this.fetchedRows = [...this.fetchedRows, ...newRows];
+      this.rows = this.fetchedRows;
       this.currentPage++;
+      if (this.sortFilterInfo.filterProp) {
+        // повторный вызов нужен для фильтрации по новополученным полям
+        this.filterList();
+      }
+      if (this.sortFilterInfo.sortProp) {
+        this.sortList();
+      }
     }
   },
 };
