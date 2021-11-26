@@ -55,39 +55,57 @@ export default {
       list: [],
       currentPage: 1,
       isSorted: false,
-      isFilered: false,
+      isFiltered: false,
+      sortedList: [],
+      filteredList: [],
+      sortFilterInfo: {},
     };
   },
   computed: {
     getTotalPages() {
       return this.list.length;
-    }
+    },
   },
   methods: {
-    addFilter(value) {
-      // нужно объединить фильтрацию и сортировку
-      this.isFilered = true;
-      let res = this.allPages;
-      if (this.isSorted) {
-        res = orderBy(this.allPages, [value.sortProp], [value.sortDirection]);
+    sortList() {
+      let array = [];
+      if (this.isFiltered) {
+        array = this.filteredList;
+      } else {
+        array = this.allPages;
       }
-      res = res.filter(row => row[value.filterProp].search(value.filterText) > -1);
-      this.preparePages(res);
+      
+      this.sortedList =  orderBy(array, [this.sortFilterInfo.sortProp], [this.sortFilterInfo.sortDirection]);
+    },
+    filterList() {
+      let array = [];
+      if (this.isSorted) {
+        array = this.sortedList;
+      } else {
+        array = this.allPages;
+      }
+      
+      this.filteredList =  array.filter(row => row[this.sortFilterInfo.filterProp].search(this.sortFilterInfo.filterText) > -1);
+    },
+    addFilter(value) {
+      this.isFiltered = true;
+      this.sortFilterInfo = value;
+      this.filterList();
+      this.preparePages(this.filteredList);
       this.getPage(this.currentPage);
     },
-    removeFilter() {
-      this.isFilered = false;
-      this.preparePages(this.allPages);
+    removeFilter(value) {
+      this.isFiltered = false;
+      this.sortFilterInfo = value;
+      this.sortList();
+      this.preparePages(this.sortedList);
       this.getPage(this.currentPage);
     },
     addSort(value) {
       this.isSorted = true;
-      let res = this.allPages;
-      if (this.isFilered) {
-        res = res.filter(row => row[value.filterProp].search(value.filterText) > -1)
-      }
-      res = orderBy(res, [value.sortProp], [value.sortDirection]);
-      this.preparePages(res);
+      this.sortFilterInfo = value;
+      this.sortList();
+      this.preparePages(this.sortedList);
       this.getPage(this.currentPage);
     },
     // создает разбитый на страницы массив
@@ -100,10 +118,10 @@ export default {
         }
         this.list = list;
       }
-      console.log('in prepare pages', this.list);
+      // console.log('in prepare pages', this.list);
     },
     async getPage(number) {
-      console.log('in get page this.list: ', this.list);
+      // console.log('in get page this.list: ', this.list);
       this.rows = this.list[number - 1];
       this.currentPage = number;
     },

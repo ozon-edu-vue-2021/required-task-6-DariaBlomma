@@ -1,5 +1,4 @@
 <script lang="jsx">
-import { orderBy } from 'lodash/collection';
 import FilterDropdown from './filter-dropdown';
 import OzTablePaginator from './oz-table-paginator';
 import DotsLoaderIcon from './dost-loader.svg';
@@ -34,36 +33,15 @@ export default {
   },
   data() {
     return {
-      // property for sorting
-      sortProp: '',
-      // asc desc
-      sortDirection: '',
-      filterProp: '',
-      filterText: '',
       filter: {
+        // property for sorting
         sortProp: '',
+        // asc desc
         sortDirection: '',
         filterProp: '',
         filterText: '',
       }
     };
-  },
-  computed: {
-    // как вариант - переместить в индексный файл
-    sortedRows() {
-      let res;
-
-      if (!this.sortProp) {
-        // todo  - возвращать не просто ряды, а отфильтрованные
-        res =  this.rows;
-        // res =  this.allPages;
-      }
-      // для правильной фильтрации должна быть не текущая страница, а все 100
-      res = orderBy(this.rows, [this.sortProp], [this.sortDirection]);
-      // console.log('res: ', res);
-
-      return res;
-    }
   },
   methods: {
     toggleSort(prop) {
@@ -72,7 +50,6 @@ export default {
       this.$emit('addSort', this.filter);
     },
     openFilterTooltip(prop = '') {
-      console.log('in open filterTooltip')
       if (prop === '') {
         this.$emit('removeFilter', this.filter);
       }
