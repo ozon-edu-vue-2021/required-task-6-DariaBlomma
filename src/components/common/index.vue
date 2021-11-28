@@ -77,6 +77,9 @@ export default {
       rememberLengthCount: 0,
       rememberedCurrentPage: 0,
       emptyMessage: '',
+      canBeSorted: true,
+      canBeFiltered: true,
+      uniqueFiltered: false,
     };
   },
   computed: {
@@ -105,9 +108,17 @@ export default {
       }
     },
     sortList() {
+      this.canBeFiltered = false;
       let array = [];
       if (this.isFiltered) {
-        array = this.filteredList;
+        if (this.staticPaging) {
+          array = this.filteredList;
+        } else {
+          if (this.canBeSorted) {
+            array = this.filteredList;
+          }
+        }
+        
       } else {
           if (!this.staticPaging) {
             array = this.fetchedRows;
@@ -120,13 +131,17 @@ export default {
 
       if (!this.staticPaging) {
         this.rows = this.sortedList;
+        this.canBeFiltered = true;
       }
     },
     async filterList() {
-      console.log('in filter list');
       let array = [];
       if (this.isSorted) {
-        array = this.sortedList;
+        if (!this.staticPaging) {
+          array = this.fetchedRows;          
+        } else {
+          array = this.sortedList;
+        }
       } else {
         if (!this.staticPaging) {
           array = this.fetchedRows;          
@@ -140,7 +155,7 @@ export default {
         this.rows = this.filteredList;
       }
     },
-    addFilter(value) {
+    addFilter(value) {  
       this.isFiltered = true;
       this.sortFilterInfo = value;
       this.filterList();
@@ -151,7 +166,7 @@ export default {
       }
     },
     removeFilter(value) {
-      this.isFiltered = false;
+      // todo -при удалении фильтра без сортировки не сбрасывается до нужных данных
       this.sortFilterInfo = value;
       this.sortList();
 
@@ -218,72 +233,78 @@ export default {
       }
       return this.requiredRowsLength;
     },
-    renderNextPage() {
-      this.fetchedRows = [...this.fetchedRows, ...this.newRows];
+    filterUniqueRows() {
+       // * при быстрой прокрутке элементы могут дублироваться. Поэтому фильтруем на уникальность
+      this.uniqueFiltered = false;
+      this.rows = this.filteredList.filter((value, index, array) => {
+        if (array[index - 1]) {
+          return array[index - 1].id !== value.id;
+        }
+      });
+      this.uniqueFiltered = true;
     },
     async infGetPage() {
-      console.log('in infGetPage');
-      // if (this.renderedRows === this.requiredRowsLength) {
-      //   console.log('rendered')
-      // } else {
-      //  console.log('not rendered')
-      // }
+      // todo - если консоль не открыта, то не грузит нужное кол-во рядов
       this.blockingPromise && await this.blockingPromise;
 
       await this.fetchNextPage() && this.newRowsFetched;
       
-      // this.renderedRows = this.$children[0].$refs.tbody.children.length;
+      this.renderedRows = this.$children[0].$refs.tbody.children.length;
       if (this.newRows.length) {
         this.fetchedRows = [...this.fetchedRows, ...this.newRows];
 
-      if (!this.sortFilterInfo.filterProp && !this.sortFilterInfo.sortProp) {
-        this.rows = this.fetchedRows;
-      }
-      
-      // todo - после фильтрации текущая страница ненормально увеличивается из-за рекурсии. Запомнить страницы при первом фильтре и вернкться к ней
-      this.currentPage++;
-      if (this.sortFilterInfo.filterProp) {
-        // повторный вызов нужен для фильтрации по новополученным полям
-        this.rememberCurrentPage();
-        this.getRequiredRowsLength();
-        this.filterList();
-
-        if (this.rows.length < this.requiredRowsLength) {
-          console.log('less');
-
-          if (this.requiredRowsLength > 70) {
-            console.log('requiredRowsLength: ', this.requiredRowsLength);
-            console.log('this.rows.length: ', this.rows.length);
-          }
-          // * при быстрой прокрутке элементы могут дублироваться. Поэтому фильтруем на уникальность
-          this.rows = this.filteredList.filter((value, index, array) => {
-            if (array[index - 1]) {
-              return array[index - 1].id !== value.id;
-            }
-          });
-          // рекурсия - это выход, но при текузем сравнении требуемое число постоянно растет. Как сравнивать с константой
-          await this.infGetPage();
-        } else {
-          this.rememberLengthCount = 0;
-          this.rememberCurrentPage(true);
-          console.log('is equal');
-          console.log('requiredRowsLength: ', this.requiredRowsLength);
-          console.log('this.rows.length: ', this.rows.length);
-          console.log('after equal this.rememberedPageNumber: ', this.rememberedPageNumber);
-          console.log('after equal this.currentPage: ', this.currentPage);
+        if (!this.sortFilterInfo.filterProp && !this.sortFilterInfo.sortProp) {
+          this.rows = this.fetchedRows;
         }
-      }
+      
+        this.currentPage++;
+        if (this.sortFilterInfo.filterProp) {     
+          this.rememberCurrentPage();
+          this.getRequiredRowsLength();
+          // повторный вызов нужен для фильтрации по новополученным полям
+          this.filterList();
 
-      if (this.sortFilterInfo.sortProp) {
-        this.sortList();
-      }
+          if (this.renderedRows < this.requiredRowsLength) {
+            if (this.canBeFiltered) {
+              this.canBeSorted = false;
+            }
+            // * при быстрой прокрутке элементы могут дублироваться. Поэтому фильтруем на уникальность
+            this.filterUniqueRows();
+
+            if (this.uniqueFiltered) {
+              await this.infGetPage();
+            }      
+
+          } else {
+            this.rememberLengthCount = 0;
+            this.rememberCurrentPage(true);
+            this.canBeSorted = true;
+            
+            if (this.sortFilterInfo.sortProp) {
+              if (this.canBeSorted) {
+                this.sortList();
+              }
+            }
+          }
+        }
+
+        if (this.sortFilterInfo.sortProp) {
+          if (!this.sortFilterInfo.filterProp) {
+            // убираем дубликаты после удаления фильтра
+            this.filterUniqueRows();
+            if (this.uniqueFiltered) {
+              this.sortList();
+            }        
+          }
+        }
+
       } else {
-        // todo - сделать return , передавать в разметку нужное сообщение
-        // todo - проверить, что действительно не должно быть данных на этом моменте по статической пагинации
-        console.log('no more new pages');
-        console.log('current Id', this.currentPage)
-        console.log('rows length', this.rows.length)
         this.emptyMessage = 'There are no more pages left';
+
+        if (this.renderedRows < this.rows.length) {
+          await this.infGetPage();
+        }
+
         return;
       }  
 
