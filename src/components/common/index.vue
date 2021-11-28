@@ -8,7 +8,7 @@
     :current-page="currentPage"
     :static-paging="staticPaging"
 
-    @getPage="getPage"
+    @getPage="infGetPage"
 
     @addFilter="addFilter"
     @removeFilter="removeFilter"
@@ -51,24 +51,29 @@ export default {
       this.blockingPromise = this.fetchFirstPage();
     }
   },   
-    // const res = await fetch(`https://jsonplaceholder.typicode.com/comments`);
-    // this.allPages = await res.json();
-    // this.preparePages(this.allPages);
-
-    // для сброса фильтров или сортировки к исходному состоянию должен быть неизменяемый массив - fetchedRows, allPages 
+  // для сброса фильтров или сортировки к исходному состоянию должен быть неизменяемый массив - fetchedRows, allPages 
   data() {
     return {
-      staticPaging: true,
+      staticPaging: false,
       rows: [],
       fetchedRows: [],
+      newRows: [],
+      afterNewRows: [],
+      renderedRows: 0,
       allPages: [],
       list: [],
       currentPage: 1,
+      constantCurrentPage: 1,
+      pageSize: 5,
+      requiredRowsLength: 5,
       isSorted: false,
       isFiltered: false,
+      pageRendered: false,
       sortedList: [],
       filteredList: [],
       sortFilterInfo: {},
+      rememberLengthCount: 0,
+      rememberedCurrentPage: 0,
     };
   },
   computed: {
@@ -78,18 +83,22 @@ export default {
   },
   methods: {
     async fetchAllPages() {
-      if (this.staticPaging) {
+      try {
         const res = await fetch(`https://jsonplaceholder.typicode.com/comments`);
         this.allPages = await res.json();
         this.preparePages(this.allPages);
         this.getPage(1);
+      } catch (e) {
+        console.warn('Could not fetch all pages', e);
       }
     },
     async fetchFirstPage() {
-      if (!this.staticPaging) {
+      try {
         const res = await fetch(`https://jsonplaceholder.typicode.com/comments?postId=1`);
         this.fetchedRows = await res.json();
         this.rows = this.fetchedRows;
+      } catch (e) {
+        console.warn('Could not fetch first page', e);
       }
     },
     sortList() {
@@ -110,25 +119,26 @@ export default {
         this.rows = this.sortedList;
       }
     },
-    filterList() {
+    async filterList() {
+      console.log('in filter list');
       let array = [];
       if (this.isSorted) {
         array = this.sortedList;
       } else {
         if (!this.staticPaging) {
-          array = this.fetchedRows;
+          array = this.fetchedRows;          
         } else {
           array = this.allPages;
         }
       }
       
       this.filteredList =  array.filter(row => row[this.sortFilterInfo.filterProp].search(this.sortFilterInfo.filterText) > -1);
-      // todo - так работает при бесконечном скролле, но лагает.
       if (!this.staticPaging) {
         this.rows = this.filteredList;
       }
     },
     addFilter(value) {
+      // console.log('in add filter');
       this.isFiltered = true;
       this.sortFilterInfo = value;
       this.filterList();
@@ -139,6 +149,7 @@ export default {
       }
     },
     removeFilter(value) {
+      // console.log('in remove filter');
       this.isFiltered = false;
       this.sortFilterInfo = value;
       this.sortList();
@@ -162,9 +173,8 @@ export default {
     preparePages(array) {
       if (array.length) {
         const list = [];
-        let size = 5; //раземер страницы
-        for (let i = 0; i < Math.ceil(array.length/size); i++) {
-            list[i] = array.slice((i*size), (i*size) + size);          
+        for (let i = 0; i < Math.ceil(array.length/this.pageSize); i++) {
+            list[i] = array.slice((i*this.pageSize), (i*this.pageSize) + this.pageSize);          
         }
         this.list = list;
       }
@@ -173,17 +183,97 @@ export default {
       this.rows = this.list[number - 1];
       this.currentPage = number;
     },
+    async fetchNextPage() {
+      try { 
+        const res = await fetch(`https://jsonplaceholder.typicode.com/comments?postId=${this.currentPage + 1}`);
+          this.newRows = await res.json();
+      } catch (e) {
+        console.warn('Could not fetch next page', e);
+      }
+    },
+    // * при самом первом вызове запоминаем номер страницы. После is equal увеличивает номер страницы на 1.
+    // * это нужно для правильного подсчета требуемых рядов на странице. 
+    // * Они зависят не от currentPage, то есть нужного id поста, а от разбиения по 5штук на страницу уже отфильтрованных данных
+    // * Получается, после набора требуемого размера рядов, в следующий вызов прибавится 5
+    rememberCurrentPage(updatePageNumber = false) {
+      this.rememberedCurrentPage++;
+      if (this.rememberedCurrentPage === 1) {
+        this.rememberedPageNumber = this.currentPage;
+      }
+      if (updatePageNumber) {
+        this.rememberedPageNumber++;
+      }
+      return this.rememberedPageNumber;
+    },
+    getRequiredRowsLength() {
+      this.rememberLengthCount++;
+      
+      if (this.rememberLengthCount === 1) {
+        this.requiredRowsLength = this.pageSize * this.rememberedPageNumber;
+        console.log('remember call 1');
+        console.log('rememberedPageNumber: ', this.rememberedPageNumber);
+        console.log('remembered this.currentPage: ', this.currentPage);
+      }
+      return this.requiredRowsLength;
+    },
+    renderNextPage() {
+      this.fetchedRows = [...this.fetchedRows, ...this.newRows];
+    },
     async infGetPage() {
+      console.log('in infGetPage');
+      
       this.blockingPromise && await this.blockingPromise;
-      const res = await fetch(`https://jsonplaceholder.typicode.com/comments?postId=${this.currentPage + 1}`);
-      const newRows = await res.json();
-      this.fetchedRows = [...this.fetchedRows, ...newRows];
-      this.rows = this.fetchedRows;
+
+      await this.fetchNextPage();
+      
+      // this.renderedRows = this.$children[0].$refs.tbody.children.length;
+
+      // if (this.renderedRows === this.requiredRowsLength) {
+      //   console.log('rendered')
+      if (this.newRows.length) {
+        this.fetchedRows = [...this.fetchedRows, ...this.newRows];
+      } else {
+        // todo - сделать return , передавать в разметку нужное сообщение
+        // todo - проверить, что действительно не должно быть данных на этом моменте по статической пагинации
+        console.log('no more new pages');
+      }  
+
+      // } else {
+      //   console.log('not rendered')
+      //   // await this.infGetPage();
+      // }
+      if (!this.sortFilterInfo.filterProp && !this.sortFilterInfo.sortProp) {
+        this.rows = this.fetchedRows;
+      }
+      
+      // todo - после фильтрации текущая страница ненормально увеличивается из-за рекурсии. Запомнить страницы при первом фильтре и вернкться к ней
       this.currentPage++;
       if (this.sortFilterInfo.filterProp) {
         // повторный вызов нужен для фильтрации по новополученным полям
+        this.rememberCurrentPage();
+        this.getRequiredRowsLength();
         this.filterList();
+
+        if (this.rows.length < this.requiredRowsLength) {
+          console.log('less');
+
+          if (this.requiredRowsLength > 70) {
+            console.log('requiredRowsLength: ', this.requiredRowsLength);
+            console.log('this.rows.length: ', this.rows.length);
+          }
+          // рекурсия - это выход, но при текузем сравнении требуемое число постоянно растет. Как сравнивать с константой
+          await this.infGetPage();
+        } else {
+          this.rememberLengthCount = 0;
+          this.rememberCurrentPage(true);
+          console.log('is equal');
+          console.log('requiredRowsLength: ', this.requiredRowsLength);
+          console.log('this.rows.length: ', this.rows.length);
+          console.log('after equal this.rememberedPageNumber: ', this.rememberedPageNumber);
+          console.log('after equal this.currentPage: ', this.currentPage);
+        }
       }
+
       if (this.sortFilterInfo.sortProp) {
         this.sortList();
       }

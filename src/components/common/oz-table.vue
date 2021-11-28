@@ -122,7 +122,7 @@ export default {
           )
         );
     },
-    renderInfPager() {
+    renderInfPager() { 
       const directives = [
         {
           name: 'detect-viewport',
@@ -147,12 +147,12 @@ export default {
     const columnsOptions = this.getColumnOptions();
     const columnsHead = this.renderHead(h, columnsOptions);
     const rows = this.renderRows(h, columnsOptions);
-    // console.log(1, this.renderInfPager);
+
     return (
       <div>
         <table class={$style.table}>
           <thead>{...columnsHead}</thead>
-          <tbody>{...rows}</tbody>
+          <tbody ref="tbody">{...rows}</tbody>
         </table>
         {staticPaging
         
