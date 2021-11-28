@@ -7,6 +7,7 @@
     :total-pages="getTotalPages"
     :current-page="currentPage"
     :static-paging="staticPaging"
+    :empty-message="emptyMessage"
 
     @getPage="infGetPage"
 
@@ -69,11 +70,13 @@ export default {
       isSorted: false,
       isFiltered: false,
       pageRendered: false,
+      newRowsFetched: false,
       sortedList: [],
       filteredList: [],
       sortFilterInfo: {},
       rememberLengthCount: 0,
       rememberedCurrentPage: 0,
+      emptyMessage: '',
     };
   },
   computed: {
@@ -138,7 +141,6 @@ export default {
       }
     },
     addFilter(value) {
-      // console.log('in add filter');
       this.isFiltered = true;
       this.sortFilterInfo = value;
       this.filterList();
@@ -149,7 +151,6 @@ export default {
       }
     },
     removeFilter(value) {
-      // console.log('in remove filter');
       this.isFiltered = false;
       this.sortFilterInfo = value;
       this.sortList();
@@ -185,8 +186,10 @@ export default {
     },
     async fetchNextPage() {
       try { 
+        this.newRowsFetched = false;
         const res = await fetch(`https://jsonplaceholder.typicode.com/comments?postId=${this.currentPage + 1}`);
-          this.newRows = await res.json();
+        this.newRows = await res.json();
+        this.newRowsFetched = true;
       } catch (e) {
         console.warn('Could not fetch next page', e);
       }
@@ -210,9 +213,8 @@ export default {
       
       if (this.rememberLengthCount === 1) {
         this.requiredRowsLength = this.pageSize * this.rememberedPageNumber;
-        console.log('remember call 1');
-        console.log('rememberedPageNumber: ', this.rememberedPageNumber);
-        console.log('remembered this.currentPage: ', this.currentPage);
+        // console.log('rememberedPageNumber: ', this.rememberedPageNumber);
+        // console.log('remembered this.currentPage: ', this.currentPage);
       }
       return this.requiredRowsLength;
     },
@@ -221,27 +223,19 @@ export default {
     },
     async infGetPage() {
       console.log('in infGetPage');
-      
-      this.blockingPromise && await this.blockingPromise;
-
-      await this.fetchNextPage();
-      
-      // this.renderedRows = this.$children[0].$refs.tbody.children.length;
-
       // if (this.renderedRows === this.requiredRowsLength) {
       //   console.log('rendered')
+      // } else {
+      //  console.log('not rendered')
+      // }
+      this.blockingPromise && await this.blockingPromise;
+
+      await this.fetchNextPage() && this.newRowsFetched;
+      
+      // this.renderedRows = this.$children[0].$refs.tbody.children.length;
       if (this.newRows.length) {
         this.fetchedRows = [...this.fetchedRows, ...this.newRows];
-      } else {
-        // todo - сделать return , передавать в разметку нужное сообщение
-        // todo - проверить, что действительно не должно быть данных на этом моменте по статической пагинации
-        console.log('no more new pages');
-      }  
 
-      // } else {
-      //   console.log('not rendered')
-      //   // await this.infGetPage();
-      // }
       if (!this.sortFilterInfo.filterProp && !this.sortFilterInfo.sortProp) {
         this.rows = this.fetchedRows;
       }
@@ -261,6 +255,12 @@ export default {
             console.log('requiredRowsLength: ', this.requiredRowsLength);
             console.log('this.rows.length: ', this.rows.length);
           }
+          // * при быстрой прокрутке элементы могут дублироваться. Поэтому фильтруем на уникальность
+          this.rows = this.filteredList.filter((value, index, array) => {
+            if (array[index - 1]) {
+              return array[index - 1].id !== value.id;
+            }
+          });
           // рекурсия - это выход, но при текузем сравнении требуемое число постоянно растет. Как сравнивать с константой
           await this.infGetPage();
         } else {
@@ -277,6 +277,17 @@ export default {
       if (this.sortFilterInfo.sortProp) {
         this.sortList();
       }
+      } else {
+        // todo - сделать return , передавать в разметку нужное сообщение
+        // todo - проверить, что действительно не должно быть данных на этом моменте по статической пагинации
+        console.log('no more new pages');
+        console.log('current Id', this.currentPage)
+        console.log('rows length', this.rows.length)
+        this.emptyMessage = 'There are no more pages left';
+        return;
+      }  
+
+
     }
   },
 };

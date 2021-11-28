@@ -30,6 +30,10 @@ export default {
       type: Boolean,
       default: true
     },
+    emptyMessage: {
+      type: String,
+      required: true,
+    },
   },
   data() {
     return {
@@ -142,7 +146,7 @@ export default {
     },
   },
   render(h) {
-    const { $style, totalPages, currentPage, staticPaging, $listeners } = this;
+    const { $style, totalPages, currentPage, staticPaging, emptyMessage, $listeners } = this;
     const { getPage } = $listeners;
     const columnsOptions = this.getColumnOptions();
     const columnsHead = this.renderHead(h, columnsOptions);
@@ -153,6 +157,7 @@ export default {
         <table class={$style.table}>
           <thead>{...columnsHead}</thead>
           <tbody ref="tbody">{...rows}</tbody>
+          { emptyMessage || ""}
         </table>
         {staticPaging
         
