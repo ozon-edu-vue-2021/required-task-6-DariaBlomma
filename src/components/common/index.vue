@@ -80,6 +80,7 @@ export default {
       canBeSorted: true,
       canBeFiltered: true,
       uniqueFiltered: false,
+      nextPageFetchedCount: 0,
     };
   },
   computed: {
@@ -204,6 +205,13 @@ export default {
         this.newRowsFetched = false;
         const res = await fetch(`https://jsonplaceholder.typicode.com/comments?postId=${this.currentPage + 1}`);
         this.newRows = await res.json();
+        this.nextPageFetchedCount++;
+        // * если на экране помещается чуть больше 10 рядов при первой загрузке, следующая партия не грузится. Поэтому получаем сразу 2 страницы
+        if (this.nextPageFetchedCount === 1) {
+          const page2 = await fetch(`https://jsonplaceholder.typicode.com/comments?postId=${this.currentPage + 2}`);
+          this.newRows = [ ... this.newRows, ... await page2.json()];
+          this.currentPage++;
+        } 
         this.newRowsFetched = true;
       } catch (e) {
         console.warn('Could not fetch next page', e);
@@ -228,8 +236,6 @@ export default {
       
       if (this.rememberLengthCount === 1) {
         this.requiredRowsLength = this.pageSize * this.rememberedPageNumber;
-        // console.log('rememberedPageNumber: ', this.rememberedPageNumber);
-        // console.log('remembered this.currentPage: ', this.currentPage);
       }
       return this.requiredRowsLength;
     },
@@ -244,7 +250,6 @@ export default {
       this.uniqueFiltered = true;
     },
     async infGetPage() {
-      // todo - если консоль не открыта, то не грузит нужное кол-во рядов
       this.blockingPromise && await this.blockingPromise;
 
       await this.fetchNextPage() && this.newRowsFetched;
@@ -306,8 +311,7 @@ export default {
         }
 
         return;
-      }  
-
+      }
 
     }
   },
