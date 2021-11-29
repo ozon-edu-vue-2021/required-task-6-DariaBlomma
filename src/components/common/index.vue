@@ -167,7 +167,6 @@ export default {
       }
     },
     removeFilter(value) {
-      // todo -при удалении фильтра без сортировки не сбрасывается до нужных данных
       this.sortFilterInfo = value;
       this.sortList();
 
@@ -281,6 +280,7 @@ export default {
             }      
 
           } else {
+            this.filterUniqueRows();
             this.rememberLengthCount = 0;
             this.rememberCurrentPage(true);
             this.canBeSorted = true;
